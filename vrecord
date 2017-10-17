@@ -38,7 +38,7 @@ $(basename "${0}") ${version}
 $(basename "${0}") will record a file via the Blackmagic SDK and bmdtools. It is an
 interactive script and will create 8 or 10-bit video files.
 
-Dependencies: bmdcapture, cowsay, ffmpeg, ffplay, mpv, qcli, and xmlstarlet
+Dependencies: cowsay, ffmpeg, ffplay, mpv, qcli, and xmlstarlet
 
 Usage: $(basename "${0}") [ -g | -e | -r | -p | -a | -x | -h ]
   -g  use the GUI
@@ -181,7 +181,7 @@ db.label = Exit
 
 video_input_options=("Composite" "SDI" "Component" "S-Video" "quit")
 audio_input_options=("Analog" "SDI Embedded Audio" "Digital Audio (AES/EBU)" "quit")
-video_bitdepth_options=("10 bit" "8 bit" "quit")
+pixel_format_options=("10 bit" "8 bit" "quit")
 video_codec_options=("Uncompressed Video" "FFV1 version 3" "JPEG2000" "ProRes" "quit")
 channel_mapping_options=("2 Stereo Tracks (Channels 1 & 2 -> 1st Track Stereo, Channels 3 & 4 -> 2nd Track Stereo)" "1 Stereo Track (From Channels 1 & 2)" "1 Stereo Track (From Channels 3 & 4)" "Channel 1 -> 1st Track Mono, Channel 2 -> 2nd Track Mono" "Channel 2 -> 1st Track Mono, Channel 1 -> 2nd Track Mono" "quit")
 container_options=("QuickTime" "Matroska" "AVI" "MXF" "quit")
@@ -279,14 +279,6 @@ BRNG
 " > /tmp/drawtext3.txt
 }
 
-# Grabs information from the bmdcapture help menu, which gives us information
-# about the card being used. We can add to this function in the future to allow
-# the user to choose different video configurations.
-get_standard_values(){
-    PAL_value="$(bmdcapture -h 2>&1 | grep "PAL" | cut -d: -f 1 | sed 's/ //g')"
-    NTSC_value="$(bmdcapture -h 2>&1 | grep "NTSC   " | cut -d: -f 1 | sed 's/ //g')"
-}
-
 duration_check(){
     # Sets up function to verify validitiy of duration settings 
     real_regexp="^$|[0-9]+|[0-9]+\.[0-9]*|\.[0-9]+"
@@ -310,10 +302,10 @@ _writeingestlog(){
 
 lookup_video_input(){
     case "${1}" in
-        "Composite") video_input=1 ;;
-        "SDI")       video_input=4 ;;
-        "Component") video_input=2 ;;
-        "S-Video")   video_input=6 ;;
+        "Composite") video_input="composite" ;;
+        "SDI")       video_input="sdi" ;;
+        "Component") video_input="component" ;;
+        "S-Video")   video_input="s_video" ;;
         "quit")      _report -d "Bye then" ; exit 0 ;;
         *)           _report -w "Error: Not a valid option, select a valid number." ; return 1 ;;
     esac
@@ -321,18 +313,18 @@ lookup_video_input(){
 
 lookup_audio_input(){
     case "${1}" in
-        "Analog")                  audio_input=1 ;;
-        "SDI Embedded Audio")      audio_input=2 ;;
-        "Digital Audio (AES/EBU)") audio_input=3 ;;
+        "Analog")                  audio_input="analog" ;;
+        "SDI Embedded Audio")      audio_input="embedded" ;;
+        "Digital Audio (AES/EBU)") audio_input="aes_ebu" ;;
         "quit")                    _report -d "Bye then" ; exit 0 ;;
         *)                         _report -w "Error: Not a valid option, select a valid number." ; return 1 ;;
     esac
 }
 
-lookup_video_bitdepth(){
+lookup_pixel_format(){
     case "${1}" in
-        "10 bit") video_bitdepth=10 ;;
-        "8 bit")  video_bitdepth=8 ;;
+        "10 bit") pixel_format="yuv422p10" ;;
+        "8 bit")  pixel_format="uyvy422" ;;
         "quit")   _report -d "Bye then" ; exit 0 ;;
         *)        _report -w "Error: Not a valid option, select a valid number." ; return 1 ;;
     esac
@@ -341,10 +333,10 @@ lookup_video_bitdepth(){
 lookup_video_codec(){
     case "${1}" in
         "Uncompressed Video")
-            if [ "${video_bitdepth}" = "10" ] ; then
+            if [ "${pixel_format}" = "yuv422p10" ] ; then
                 codecname="Uncompressed 10-bit 4:2:2"
                 middleoptions+=(-c:v v210)
-            elif [ "${video_bitdepth}" = "8" ] ; then
+            elif [ "${pixel_format}" = "uyvy422" ] ; then
                 codecname="Uncompressed 8-bit 4:2:2"
                 middleoptions+=(-c:v rawvideo -pix_fmt uyvy422 -tag:v 2vuy)
             fi
@@ -439,10 +431,10 @@ lookup_container(){
 lookup_standard(){
     case "${1}" in
         "NTSC")
-            standard="${NTSC_value}"
+            standard="ntsc"
             ;;
         "PAL")
-            standard="${PAL_value}"
+            standard="pal "
             ;;
         "quit") _report -d "Bye then" ; exit 0 ;;
         *) _report -w "Error: Not a valid option, select a valid number." ; return 1 ;;
@@ -470,9 +462,6 @@ lookup_qctoolsxml(){
         *) _report -w "Error: Not a valid option, select a valid number." ; return 1 ;;
     esac
 }
-
-# get the correct values for NTSC and PAL video depending on the capture card
-get_standard_values
 
 # set up drawtext.txt files in case needed.
 set_up_drawtext
@@ -818,7 +807,7 @@ elif [[ "${runtype}" = "edit" ]] ; then
     playbackview_choice_comment="#Set playbackview_choice to one of these valid options or leave blank to request each run:  $(printf "\"%s\" " "${playbackview_options[@]}")"
     framemd5_choice_comment="#Set framemd5_choice to one of these valid options or leave blank to request each run:  $(printf "\"%s\" " "${framemd5_options[@]}")"
     qctoolsxml_choice_comment="#Set qctoolsxml_choice to one of these valid options or leave blank to request each run:  $(printf "\"%s\" " "${qctoolsxml_options[@]}")"
-    video_bit_depth_choice_comment="#Set video_bit_depth_choice to one of these valid options or leave blank to request each run:  $(printf "\"%s\" " "${video_bitdepth_options[@]}")"
+    video_bit_depth_choice_comment="#Set video_bit_depth_choice to one of these valid options or leave blank to request each run:  $(printf "\"%s\" " "${pixel_format_options[@]}")"
     video_codec_choice_comment="#Set video_codec_choice to one of these valid options or leave blank to request each run: $(printf "\"%s\" " "${video_codec_options[@]}")"
     audio_mapping_choice_comment="#Set audio_mapping_choice to one of these valid options or leave blank to request each run:  $(printf "\"%s\" " "${channel_mapping_options[@]}")"
     dir_comment="#Set dir to the preferred recording directory or leave blank to request each run:"
@@ -957,25 +946,27 @@ else
 fi
 
 if [[ "${video_bit_depth_choice}" && "${video_bit_depth_choice}" != "${undeclaredoption}" ]] ; then
-    lookup_video_bitdepth "${video_bit_depth_choice}"
+    lookup_pixel_format "${video_bit_depth_choice}"
 else
     _report -q "Which VIDEO bit depth?"
     PS3="Select a video bit depth: "
-    select video_bit_depth_choice in "${video_bitdepth_options[@]}" ; do
-        lookup_video_bitdepth "$video_bit_depth_choice"
+    select video_bit_depth_choice in "${pixel_format_options[@]}" ; do
+        lookup_pixel_format "$video_bit_depth_choice"
         [ "${?}" -eq 0 ] && break
     done
 fi
 
-GRAB_DECKLINK=(bmdcapture)
-GRAB_DECKLINK+=(-m ${standard})
-GRAB_DECKLINK+=(-V "${video_input}")
-GRAB_DECKLINK+=(-A "${audio_input}")
-GRAB_DECKLINK+=(-p "${video_bitdepth}")
-GRAB_DECKLINK+=(-c 8)
-GRAB_DECKLINK+=(-s 32)
-GRAB_DECKLINK+=(-F nut)
-GRAB_DECKLINK+=(-f pipe:1)
+GRAB_DECKLINK=(ffmpeg-dl)
+GRAB_DECKLINK+=(-f decklink)
+GRAB_DECKLINK+=(-audio_input "${audio_input}")
+GRAB_DECKLINK+=(-video_input "${video_input}")
+GRAB_DECKLINK+=(-format_code "${standard}")
+GRAB_DECKLINK+=(-channels 8)
+GRAB_DECKLINK+=(-raw_format "${pixel_format}")
+GRAB_DECKLINK+=(-i 'UltraStudio Express')
+GRAB_DECKLINK+=(-c copy)
+GRAB_DECKLINK+=(-f nut)
+GRAB_DECKLINK+=(-)
 
 if ps ax | grep -v grep | grep 'bmdcapture' > /dev/null ; then
     _report -w "bmdcapture is already busy."
@@ -1126,7 +1117,7 @@ else
     done
 fi
 
-_report -d "Summary: ${video_bitdepth} bit ${codecname} ${container_choice} file from ${standard_choice} ${video_input_choice} ${audio_input_choice} Frame MD5s=${framemd5_choice} QCTools XML=${qctoolsxml_choice} and Technician=${technician}. Inputs recorded to ${dir}/${id}.${extension} Auxiliary Files created in ${logdir}"
+_report -d "Summary: ${pixel_format} bit ${codecname} ${container_choice} file from ${standard_choice} ${video_input_choice} ${audio_input_choice} Frame MD5s=${framemd5_choice} QCTools XML=${qctoolsxml_choice} and Technician=${technician}. Inputs recorded to ${dir}/${id}.${extension} Auxiliary Files created in ${logdir}"
 if [[ "$invert_phase" = 1 ]] ; then
     echo -e " \033[101mWARNING: Option to invert phase of second audio channel has been selected\033[0m"
 fi
@@ -1142,7 +1133,7 @@ _writeingestlog "computer_name" "$(uname -n)"
 _writeingestlog "user_name" "$(whoami)"
 _writeingestlog "operating_system_version" "$(uname -v)"
 _writeingestlog "datetime_start" "$(_get_iso8601)"
-_writeingestlog "video_bit_depth" "${video_bitdepth}"
+_writeingestlog "video_bit_depth" "${pixel_format}"
 _writeingestlog "codec_name" "${codecname}"
 _writeingestlog "container" "${container_choice}"
 _writeingestlog "television_standard" "${standard_choice}"
@@ -1208,9 +1199,9 @@ if [[ "${qctoolsxml_choice}" = "Yes" ]] ; then
             "${extraoutputs[@]}" \
             -c:v copy -c:a copy -syncpoints none -f_strict experimental -f nut - | qcli -i - -o "${logdir}/${id}${suffix}.${extension}.qctools.xml.gz"
     _report -d "Vrecord is analyzing your video file. Please be patient."
-    if [[ "${video_bitdepth}" = "10" ]] ; then
+    if [[ "${pixel_format}" = "10" ]] ; then
         SAT_OUTLIERS=$(gzcat "${logdir}/${id}${suffix}.${extension}.qctools.xml.gz" | xml sel -t -v "count(//tag[@key='lavfi.signalstats.SATMAX'][@value>496])" -n)
-    elif [[ "${video_bitdepth}" = "8" ]] ; then
+    elif [[ "${pixel_format}" = "8" ]] ; then
         SAT_OUTLIERS=$(gzcat "${logdir}/${id}${suffix}.${extension}.qctools.xml.gz" | xml sel -t -v "count(//tag[@key='lavfi.signalstats.SATMAX'][@value>124])" -n)
     fi
     AUD_OUTLIERS=$(gzcat "${logdir}/${id}${suffix}.${extension}.qctools.xml.gz" | xml sel -t -v "count(//tag[@key='lavfi.astats.Overall.Max_level'][@value>=0.999998])" -n)
