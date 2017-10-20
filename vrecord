@@ -532,7 +532,7 @@ drawtext=fontcolor=white:fontsize=52:\
 fontfile=${defaultfont}:textfile=/tmp/drawtext3.txt[f1];\
 [f1][abc1][de1]hstack=inputs=3[abcdef1];\
 [g]scale=iw+512+180:82,geq=lum=60:cb=128:cr=128,drawtext=fontcolor=white:fontsize=22:\
-fontfile=${defaultfont}:textfile=/tmp/bmdcapture.log:\
+fontfile=${defaultfont}:textfile=/tmp/vrecord_input.log:\
 reload=1:y=82-th[g1];\
 [abcdef1][g1]vstack[out]"
             ;;
@@ -956,7 +956,6 @@ else
     done
 fi
 
-GRAB_DECKLINK=(ffmpeg-dl)
 GRAB_DECKLINK+=(-f decklink)
 GRAB_DECKLINK+=(-draw_bars 0)
 GRAB_DECKLINK+=(-audio_input "${audio_input}")
@@ -965,9 +964,9 @@ GRAB_DECKLINK+=(-format_code "${standard}")
 GRAB_DECKLINK+=(-channels 8)
 GRAB_DECKLINK+=(-raw_format "${pixel_format}")
 GRAB_DECKLINK+=(-i 'UltraStudio Express')
-GRAB_DECKLINK+=(-c copy)
-GRAB_DECKLINK+=(-f nut)
-GRAB_DECKLINK+=(-)
+PIPE_DECKLINK+=(-c copy)
+PIPE_DECKLINK+=(-f nut)
+PIPE_DECKLINK+=(-)
 
 if [[ "${runtype}" = "audiopassthrough" ]] ; then
     playbackfilter="\
@@ -986,7 +985,7 @@ if [[ "${runtype}" = "audiopassthrough" ]] ; then
     [abc1][de1]hstack[abcde1],\
     [abcde1][xx]overlay=10:10[vo]"
     echo "ESC quit" > ~/.config/mpv/input.conf
-    "${GRAB_DECKLINK[@]}" 2> /tmp/bmdcapture.log | \
+    ffmpeg-dl "${GRAB_DECKLINK[@]}" 2> /tmp/vrecord_input.log | \
         mpv - --title="mode:${runtype} - video:'${video_input_choice}' audio:'${audio_input_choice}'" -lavfi-complex "${playbackfilter}"	
     exit 0
 fi
@@ -1003,8 +1002,7 @@ else
 fi
 
 if [[ "${runtype}" = "passthrough" ]] ; then
-    "${GRAB_DECKLINK[@]}" 2> /tmp/bmdcapture.log | \
-        ffplay -v info -hide_banner -stats -i - \
+    ffplay-dl -v info -nostats "${GRAB_DECKLINK[@]}" 2> /tmp/vrecord_input.log \
         -window_title "mode:${runtype} - video:'${video_input_choice}' audio:'${audio_input_choice}'" \
         -vf "${playbackfilter}"
     exit 0
@@ -1179,7 +1177,7 @@ if [[ "${qctoolsxml_choice}" = "Yes" ]] ; then
         exit 1
     fi
     # mkfifo needs to be conditional and maybe deal with deleting a preexisting pipe
-    "${GRAB_DECKLINK[@]}" 2> >(tee "${logdir}/${id}${bmdcapturelogsuffix}" /tmp/bmdcapture.log >/dev/null) | \
+    "${GRAB_DECKLINK[@]}" 2> >(tee "${logdir}/${id}${bmdcapturelogsuffix}" /tmp/vrecord_input.log >/dev/null) | \
         tee >(ffplay -i - -v info \
             -hide_banner -stats -autoexit \
              -window_title "mode:${runtype} - video:'${video_input_choice}' audio:'${audio_input_choice}'" -vf "${playbackfilter}") | \
@@ -1203,7 +1201,7 @@ if [[ "${qctoolsxml_choice}" = "Yes" ]] ; then
     AUD_OUTLIERS=$(gzcat "${logdir}/${id}${suffix}.${extension}.qctools.xml.gz" | xml sel -t -v "count(//tag[@key='lavfi.astats.Overall.Max_level'][@value>=0.999998])" -n)
     BRNG_OUTLIERS=$(gzcat "${logdir}/${id}${suffix}.${extension}.qctools.xml.gz" | xml sel -t -v "count(//tag[@key='lavfi.signalstats.BRNG'][@value>=0.03])" -n)
 else
-    "${GRAB_DECKLINK[@]}" 2> >(tee "${logdir}/${id}${bmdcapturelogsuffix}" /tmp/bmdcapture.log >/dev/null) | \
+    "${GRAB_DECKLINK[@]}" 2> >(tee "${logdir}/${id}${bmdcapturelogsuffix}" /tmp/vrecord_input.log >/dev/null) | \
         tee >(ffplay -i - -v info \
             -hide_banner -stats -autoexit \
             -window_title "mode:${runtype} - video:'${video_input_choice}' audio:'${audio_input_choice}'" -vf "${playbackfilter}") | \
