@@ -968,11 +968,6 @@ GRAB_DECKLINK+=(-c copy)
 GRAB_DECKLINK+=(-f nut)
 GRAB_DECKLINK+=(-)
 
-if ps ax | grep -v grep | grep 'bmdcapture' > /dev/null ; then
-    _report -w "bmdcapture is already busy."
-    exit 1
-fi
-
 if [[ "${runtype}" = "audiopassthrough" ]] ; then
     playbackfilter="\
     [aid1]asplit=2[z][ao],\
