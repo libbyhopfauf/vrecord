@@ -958,6 +958,7 @@ fi
 
 GRAB_DECKLINK=(ffmpeg-dl)
 GRAB_DECKLINK+=(-f decklink)
+GRAB_DECKLINK+=(-draw_bars 0)
 GRAB_DECKLINK+=(-audio_input "${audio_input}")
 GRAB_DECKLINK+=(-video_input "${video_input}")
 GRAB_DECKLINK+=(-format_code "${standard}")
