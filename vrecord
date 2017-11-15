@@ -89,6 +89,18 @@ _report(){
     echo ${echoopt} "${color}${startmessage[@]}${message}${NC}"
 }
 
+_get_decklink_inputs(){
+    DECKLINK_INPUTS=$("${FFMPEG_DECKLINK}" -f decklink -list_devices 1 -i dummy 2>&1 | grep "^\[decklink" | grep "'" | cut -d "'" -f 2)
+    if [[ -z "${DECKLINK_INPUTS}" ]] ; then
+        _report -w "No decklink inputs were found. Running \`${FFMPEG_DECKLINK} -hide_banner -f decklink -list_devices 1 -i dummy\` results in:"
+        "${FFMPEG_DECKLINK}" -hide_banner -f decklink -list_devices 1 -i dummy
+        _report -w "Please check connections and try again."
+        exit 1
+    else
+        FIRST_DECKLINK_INPUT=$(echo "${DECKLINK_INPUTS}" | head -n 1)
+    fi
+}
+
 # command-line options to set mediaid and original variables
 OPTIND=1
 while getopts ":herpaxg" opt ; do
@@ -958,6 +970,7 @@ else
     done
 fi
 
+_get_decklink_inputs
 GRAB_DECKLINK+=(-f decklink)
 GRAB_DECKLINK+=(-draw_bars 0)
 GRAB_DECKLINK+=(-audio_input "${audio_input}")
@@ -965,7 +978,7 @@ GRAB_DECKLINK+=(-video_input "${video_input}")
 GRAB_DECKLINK+=(-format_code "${standard}")
 GRAB_DECKLINK+=(-channels 8)
 GRAB_DECKLINK+=(-raw_format "${pixel_format}")
-GRAB_DECKLINK+=(-i 'UltraStudio Express')
+GRAB_DECKLINK+=(-i "${FIRST_DECKLINK_INPUT}")
 PIPE_DECKLINK+=(-c copy)
 PIPE_DECKLINK+=(-f nut)
 PIPE_DECKLINK+=(-)
