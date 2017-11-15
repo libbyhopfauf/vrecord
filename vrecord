@@ -28,7 +28,7 @@ BRNG_OUTLIER_THRSHLD=14
 FFMPEG_DECKLINK=(ffmpeg-dl)
 FFPLAY_DECKLINK=(ffplay-dl)
 
-if "${FFMPEG_DECKLINK}" -version 2>&1 | grep "Library not loaded" >/dev/null ; then
+if "${FFMPEG_DECKLINK[@]}" -version 2>&1 | grep "Library not loaded" >/dev/null ; then
     echo "Please reinstall 'ffmpeg-dl'. brew install amiaopensource/amiaos/ffmpegdecklink Exiting."
     exit 1
 fi
@@ -90,10 +90,10 @@ _report(){
 }
 
 _get_decklink_inputs(){
-    DECKLINK_INPUTS=$("${FFMPEG_DECKLINK}" -f decklink -list_devices 1 -i dummy 2>&1 | grep "^\[decklink" | grep "'" | cut -d "'" -f 2)
+    DECKLINK_INPUTS=$("${FFMPEG_DECKLINK[@]}" -f decklink -list_devices 1 -i dummy 2>&1 | grep "^\[decklink" | grep "'" | cut -d "'" -f 2)
     if [[ -z "${DECKLINK_INPUTS}" ]] ; then
         _report -w "No decklink inputs were found. Running \`${FFMPEG_DECKLINK} -hide_banner -f decklink -list_devices 1 -i dummy\` results in:"
-        "${FFMPEG_DECKLINK}" -hide_banner -f decklink -list_devices 1 -i dummy
+        "${FFMPEG_DECKLINK[@]}" -hide_banner -f decklink -list_devices 1 -i dummy
         _report -w "Please check connections and try again."
         exit 1
     else
@@ -1000,7 +1000,7 @@ if [[ "${runtype}" = "audiopassthrough" ]] ; then
     [abc1][de1]hstack[abcde1],\
     [abcde1][xx]overlay=10:10[vo]"
     echo "ESC quit" > ~/.config/mpv/input.conf
-    "${FFMPEG_DECKLINK}" "${GRAB_DECKLINK[@]}" 2> /tmp/vrecord_input.log | \
+    "${FFMPEG_DECKLINK[@]}" "${GRAB_DECKLINK[@]}" 2> /tmp/vrecord_input.log | \
         mpv - --title="mode:${runtype} - video:'${video_input_choice}' audio:'${audio_input_choice}'" -lavfi-complex "${playbackfilter}"	
     exit 0
 fi
