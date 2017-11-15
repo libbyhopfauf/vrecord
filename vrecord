@@ -971,7 +971,7 @@ else
 fi
 
 _get_decklink_inputs
-GRAB_DECKLINK+=(-f decklink)
+GRAB_DECKLINK=(-f decklink)
 GRAB_DECKLINK+=(-draw_bars 0)
 GRAB_DECKLINK+=(-audio_input "${audio_input}")
 GRAB_DECKLINK+=(-video_input "${video_input}")
@@ -979,7 +979,7 @@ GRAB_DECKLINK+=(-format_code "${standard}")
 GRAB_DECKLINK+=(-channels 8)
 GRAB_DECKLINK+=(-raw_format "${pixel_format}")
 GRAB_DECKLINK+=(-i "${FIRST_DECKLINK_INPUT}")
-PIPE_DECKLINK+=(-c copy)
+PIPE_DECKLINK=(-c copy)
 PIPE_DECKLINK+=(-f nut)
 PIPE_DECKLINK+=(-)
 
