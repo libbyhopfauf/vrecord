@@ -97,7 +97,7 @@ _get_decklink_inputs(){
         _report -w "Please check connections and try again."
         exit 1
     else
-        FIRST_DECKLINK_INPUT=$(echo "${DECKLINK_INPUTS}" | head -n 1)
+        FIRST_DECKLINK_INPUT="$(echo "${DECKLINK_INPUTS}" | head -n 1 )"
     fi
 }
 
