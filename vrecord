@@ -3,11 +3,6 @@
 # vrecord
 # Open-source software for capturing a video signal and turning it into a digital file.
 
-if ffmpeg -version 2>&1 | grep "Library not loaded" >/dev/null ; then
-    echo "Please reinstall 'FFmpeg'. Exiting."
-    exit 1
-fi
-
 config_file="$HOME/.$(basename "${0}").conf"
 if [[ $(dirname "$(which "${0}")") = "/usr/local/bin" ]] ; then
     version=$(TMP=$(brew info vrecord | grep -Eo "/vrecord/.* \(") ; echo ${TMP:9:(${#TMP}-11)})
@@ -33,14 +28,19 @@ BRNG_OUTLIER_THRSHLD=14
 FFMPEG_DECKLINK=(ffmpeg-dl)
 FFPLAY_DECKLINK=(ffplay-dl)
 
+if "${FFMPEG_DECKLINK}" -version 2>&1 | grep "Library not loaded" >/dev/null ; then
+    echo "Please reinstall 'ffmpeg-dl'. brew install amiaopensource/amiaos/ffmpegdecklink Exiting."
+    exit 1
+fi
+
 _usage(){
     cat <<EOF
 $(basename "${0}") ${version}
 
-$(basename "${0}") will record a file via the Blackmagic SDK and bmdtools. It is an
+$(basename "${0}") will record a file via the Blackmagic SDK and ffmpeg. It is an
 interactive script and will create 8 or 10-bit video files.
 
-Dependencies: cowsay, ffmpeg, ffplay, mpv, qcli, and xmlstarlet
+Dependencies: cowsay, amiaopensource/amiaos/ffmpegdecklink --with-sdl2, mpv, qcli, and xmlstarlet
 
 Usage: $(basename "${0}") [ -g | -e | -r | -p | -a | -x | -h ]
   -g  use the GUI
